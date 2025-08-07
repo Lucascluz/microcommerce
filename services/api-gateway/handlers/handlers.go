@@ -35,7 +35,7 @@ func NewGatewayHandler() *GatewayHandler {
 }
 
 func (h *GatewayHandler) PingServices(c *gin.Context) {
-	services := []string{"payment-service"} // Add other services as needed
+	services := []string{"payment-service", "product-service", "user-service", "order-service", "shipping-service", "sales-service", "notifications-service", "review-service", "visualization-service"} // Add other services as needed
 
 	log.Printf("Pinging %d services", len(services))
 
