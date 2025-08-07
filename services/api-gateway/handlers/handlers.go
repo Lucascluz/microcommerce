@@ -82,7 +82,7 @@ responseLoop:
 			}
 
 			log.Printf("Received response: %s", string(m.Value))
-			var resp map[string]interface{}
+			var resp map[string]any
 			if err := json.Unmarshal(m.Value, &resp); err == nil {
 				responses = append(responses, resp)
 			}
