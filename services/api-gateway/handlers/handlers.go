@@ -29,7 +29,7 @@ func NewGatewayHandler() *GatewayHandler {
 			Brokers:     []string{broker},
 			Topic:       "service-pong",
 			GroupID:     "api-gateway-group",
-			StartOffset: kafka.LastOffset,
+			StartOffset: kafka.FirstOffset,
 		}),
 	}
 }
@@ -61,7 +61,8 @@ func (h *GatewayHandler) PingServices(c *gin.Context) {
 
 	// Collect responses with longer timeout
 	responses := make([]map[string]interface{}, 0)
-	timeout := time.After(10 * time.Second)
+	receivedServices := make(map[string]bool)
+	timeout := time.After(15 * time.Second)
 
 responseLoop:
 	for len(responses) < len(services) {
@@ -70,7 +71,7 @@ responseLoop:
 			log.Printf("Timeout waiting for service responses. Got %d/%d responses", len(responses), len(services))
 			break responseLoop
 		default:
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			m, err := h.kafkaReader.ReadMessage(ctx)
 			cancel()
 
@@ -82,9 +83,15 @@ responseLoop:
 			}
 
 			log.Printf("Received response: %s", string(m.Value))
-			var resp map[string]any
+			var resp map[string]interface{}
 			if err := json.Unmarshal(m.Value, &resp); err == nil {
-				responses = append(responses, resp)
+				// Check if we already received response from this service
+				if serviceName, ok := resp["service"].(string); ok {
+					if !receivedServices[serviceName] {
+						receivedServices[serviceName] = true
+						responses = append(responses, resp)
+					}
+				}
 			}
 		}
 	}

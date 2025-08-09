@@ -32,5 +32,6 @@ func main() {
 	}
 
 	log.Printf("API Gateway starting on port %s", port)
+	// Starting server with updated handlers
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
