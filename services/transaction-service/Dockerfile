@@ -6,17 +6,17 @@ WORKDIR /app
 COPY shared/ ./shared/
 
 # Copy service files
-COPY services/catalog-service/go.mod services/catalog-service/go.sum ./services/catalog-service/
-WORKDIR /app/services/catalog-service
+COPY services/transaction-service/go.mod services/transaction-service/go.sum ./services/transaction-service/
+WORKDIR /app/services/transaction-service
 RUN go mod download
 
 # Copy the rest of the service code
-COPY services/catalog-service/ ./
+COPY services/transaction-service/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o main cmd/main.go
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
-COPY --from=builder /app/services/catalog-service/main .
-EXPOSE 8082
+COPY --from=builder /app/services/transaction-service/main .
+EXPOSE 8081
 CMD ["./main"]

@@ -1,4 +1,4 @@
-module github.com/lucas/user-service
+module github.com/lucas/catalog-service
 
 go 1.22.2
 

@@ -1,19 +1,29 @@
-# MicroCommerce
+# MicroCommerce - Restructured Architecture
 
-A modern microservices-based e-commerce platform built with Go, Kafka, and Kubernetes.
+A distributed e-commerce microservices platform built with Go, designed for scalability and maintainability.
 
-## 🚀 Overview
+## 🏗️ Architecture Overview
 
-MicroCommerce is a scalable, distributed e-commerce platform designed using microservices architecture. It demonstrates modern cloud-native development practices with container orchestration, event-driven communication, and service mesh patterns.
+The system has been restructured into **5 core services** for better organization and reduced complexity:
 
-## 🏗️ Architecture
+### Core Services
 
-The platform consists of four core microservices that communicate through an API Gateway and use Apache Kafka for event-driven messaging:
+| Service | Port | Responsibility | Consolidated From |
+|---------|------|---------------|-------------------|
+| **api-gateway** | 8080 | Request routing, service discovery | - |
+| **user-service** | 8083 | Authentication, profiles, account management | *(unchanged)* |
+| **catalog-service** | 8082 | Product listings, reviews, inventory | product-service + review-service |
+| **transaction-service** | 8081 | Orders, payments, sales, shipping | payment-service + order-service + sales-service + shipping-service |
+| **notifications-service** | 8087 | Email, push notifications | *(unchanged)* |
+| **visualization-service** | 8089 | Analytics, observability, reports | *(unchanged)* |
 
-- **API Gateway** (Port 8080) - Entry point for all client requests with service orchestration
-- **Payment Service** (Port 8081) - Handles payment processing and transactions
-- **Product Service** (Port 8082) - Manages product catalog and inventory
-- **User Service** (Port 8083) - User authentication and profile management
+### Shared Infrastructure
+
+| Component | Port | Purpose |
+|-----------|------|---------|
+| **PostgreSQL** | 5432 | Primary database for all services |
+| **Redis** | 6379 | Caching and session management |
+| **Kafka** | 9092 | Inter-service messaging |
 
 ### Architecture Diagram
 

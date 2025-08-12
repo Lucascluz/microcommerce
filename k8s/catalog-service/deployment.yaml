@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: visualization-service
+  name: catalog-service
   labels:
-    app: visualization-service
+    app: catalog-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: visualization-service
+      app: catalog-service
   template:
     metadata:
       labels:
-        app: visualization-service
+        app: catalog-service
     spec:
       containers:
-      - name: visualization-service
-        image: visualization-service
+      - name: catalog-service
+        image: catalog-service
         ports:
-        - containerPort: 8089
+        - containerPort: 8082
         env:
         - name: PORT
-          value: "8089"
+          value: "8082"
         - name: KAFKA_BROKER
           value: "kafka:9092"
         - name: POSTGRES_HOST
@@ -48,12 +48,12 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 8089
+            port: 8082
           initialDelaySeconds: 10
           periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /
-            port: 8089
+            port: 8082
           initialDelaySeconds: 30
           periodSeconds: 10

@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: visualization-service
+  name: transaction-service
   labels:
-    app: visualization-service
+    app: transaction-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: visualization-service
+      app: transaction-service
   template:
     metadata:
       labels:
-        app: visualization-service
+        app: transaction-service
     spec:
       containers:
-      - name: visualization-service
-        image: visualization-service
+      - name: transaction-service
+        image: transaction-service
         ports:
-        - containerPort: 8089
+        - containerPort: 8081
         env:
         - name: PORT
-          value: "8089"
+          value: "8081"
         - name: KAFKA_BROKER
           value: "kafka:9092"
         - name: POSTGRES_HOST
@@ -48,12 +48,12 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 8089
+            port: 8081
           initialDelaySeconds: 10
           periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /
-            port: 8089
+            port: 8081
           initialDelaySeconds: 30
           periodSeconds: 10

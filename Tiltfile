@@ -18,8 +18,6 @@ print("""
    evaluates this file.
 -----------------------------------------------------------------
 """.strip())
-warn('ℹ️ Open {tiltfile_path} in your favorite editor to get started.'.format(
-    tiltfile_path=config.main_path))
 
 
 # Set Kubernetes context to minikube
@@ -38,15 +36,15 @@ docker_build(
 )
 
 docker_build(
-    'payment-service',
+    'catalog-service',
     '.',  # Build from project root to include shared module
-    dockerfile='./services/payment-service/Dockerfile'
+    dockerfile='./services/catalog-service/Dockerfile'
 )
 
 docker_build(
-    'product-service',
+    'transaction-service',
     '.',  # Build from project root to include shared module
-    dockerfile='./services/product-service/Dockerfile'
+    dockerfile='./services/transaction-service/Dockerfile'
 )
 
 docker_build(
@@ -56,33 +54,9 @@ docker_build(
 )
 
 docker_build(
-    'order-service',
-    '.',  # Build from project root to include shared module
-    dockerfile='./services/order-service/Dockerfile'
-)
-
-docker_build(
-    'shipping-service',
-    '.',  # Build from project root to include shared module
-    dockerfile='./services/shipping-service/Dockerfile'
-)
-
-docker_build(
-    'sales-service',
-    '.',  # Build from project root to include shared module
-    dockerfile='./services/sales-service/Dockerfile'
-)
-
-docker_build(
     'notifications-service',
     '.',  # Build from project root to include shared module
     dockerfile='./services/notifications-service/Dockerfile'
-)
-
-docker_build(
-    'review-service',
-    '.',  # Build from project root to include shared module
-    dockerfile='./services/review-service/Dockerfile'
 )
 
 docker_build(
@@ -91,26 +65,22 @@ docker_build(
     dockerfile='./services/visualization-service/Dockerfile'
 )
 
+# Deploy databases first
+k8s_yaml('./k8s/database/postgres.yaml')
+k8s_yaml('./k8s/database/redis.yaml')
+
 # Deploy Kafka (using KRaft mode, no ZooKeeper needed)
 k8s_yaml('./k8s/kafka/kafka.yaml')
 
 # Deploy services
-k8s_yaml('./k8s/payment-service/deployment.yaml')
-k8s_yaml('./k8s/payment-service/service.yaml')
-k8s_yaml('./k8s/product-service/deployment.yaml')
-k8s_yaml('./k8s/product-service/service.yaml')
+k8s_yaml('./k8s/catalog-service/deployment.yaml')
+k8s_yaml('./k8s/catalog-service/service.yaml')
+k8s_yaml('./k8s/transaction-service/deployment.yaml')
+k8s_yaml('./k8s/transaction-service/service.yaml')
 k8s_yaml('./k8s/user-service/deployment.yaml')
 k8s_yaml('./k8s/user-service/service.yaml')
-k8s_yaml('./k8s/order-service/deployment.yaml')
-k8s_yaml('./k8s/order-service/service.yaml')
-k8s_yaml('./k8s/shipping-service/deployment.yaml')
-k8s_yaml('./k8s/shipping-service/service.yaml')
-k8s_yaml('./k8s/sales-service/deployment.yaml')
-k8s_yaml('./k8s/sales-service/service.yaml')
 k8s_yaml('./k8s/notifications-service/deployment.yaml')
 k8s_yaml('./k8s/notifications-service/service.yaml')
-k8s_yaml('./k8s/review-service/deployment.yaml')
-k8s_yaml('./k8s/review-service/service.yaml')
 k8s_yaml('./k8s/visualization-service/deployment.yaml')
 k8s_yaml('./k8s/visualization-service/service.yaml')
 
@@ -120,27 +90,21 @@ k8s_yaml('./k8s/api-gateway/service.yaml')
 
 # Port forwards for development
 k8s_resource('api-gateway', port_forwards=['8080:8080'])
-k8s_resource('payment-service', port_forwards=['8081:8081'])
-k8s_resource('product-service', port_forwards=['8082:8082'])
+k8s_resource('catalog-service', port_forwards=['8082:8082'])
+k8s_resource('transaction-service', port_forwards=['8081:8081'])
 k8s_resource('user-service', port_forwards=['8083:8083'])
-k8s_resource('order-service', port_forwards=['8084:8084'])
-k8s_resource('shipping-service', port_forwards=['8085:8085'])
-k8s_resource('sales-service', port_forwards=['8086:8086'])
 k8s_resource('notifications-service', port_forwards=['8087:8087'])
-k8s_resource('review-service', port_forwards=['8088:8088'])
 k8s_resource('visualization-service', port_forwards=['8089:8089'])
 k8s_resource('kafka', port_forwards=['9092:9092'])
+k8s_resource('postgres', port_forwards=['5432:5432'])
+k8s_resource('redis', port_forwards=['6379:6379'])
 
-# Resource dependencies - services depend on Kafka
-k8s_resource('api-gateway', resource_deps=['kafka'])
-k8s_resource('payment-service', resource_deps=['kafka'])
-k8s_resource('product-service', resource_deps=['kafka'])
-k8s_resource('user-service', resource_deps=['kafka'])
-k8s_resource('order-service', resource_deps=['kafka'])
-k8s_resource('shipping-service', resource_deps=['kafka'])
-k8s_resource('sales-service', resource_deps=['kafka'])
-k8s_resource('notifications-service', resource_deps=['kafka'])
-k8s_resource('review-service', resource_deps=['kafka'])
-k8s_resource('visualization-service', resource_deps=['kafka'])
+# Resource dependencies - services depend on databases and Kafka
+k8s_resource('api-gateway', resource_deps=['kafka', 'postgres', 'redis'])
+k8s_resource('catalog-service', resource_deps=['kafka', 'postgres', 'redis'])
+k8s_resource('transaction-service', resource_deps=['kafka', 'postgres', 'redis'])
+k8s_resource('user-service', resource_deps=['kafka', 'postgres', 'redis'])
+k8s_resource('notifications-service', resource_deps=['kafka', 'postgres', 'redis'])
+k8s_resource('visualization-service', resource_deps=['kafka', 'postgres', 'redis'])
 
 

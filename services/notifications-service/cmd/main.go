@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/lucas/shared/utils"
 	"github.com/segmentio/kafka-go"
 )
@@ -14,21 +12,10 @@ import (
 func main() {
 	port := utils.GetEnvOrDefault("PORT", "8087")
 
-	router := gin.Default()
-
-	// Api gateway health check
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "healthy",
-			"service": "notifications-service",
-		})
-	})
-
 	// Start Kafka consumer in a goroutine
 	go startKafkaConsumer()
 
 	log.Printf("Notifications service starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
 }
 
 func startKafkaConsumer() {

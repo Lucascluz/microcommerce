@@ -4,6 +4,13 @@
 
 This document provides comprehensive information about the MicroCommerce API endpoints. The API follows RESTful principles and uses JSON for data exchange.
 
+**Architecture Update:** The system has been restructured into 5 core services:
+- **user-service** (8083): Authentication, profiles, account management
+- **catalog-service** (8082): Product listings, reviews, inventory
+- **transaction-service** (8081): Orders, payments, sales, shipping
+- **notifications-service** (8087): Email, push notifications
+- **visualization-service** (8089): Analytics, reports, observability
+
 ## Base URL
 
 **Local Development:**
@@ -15,6 +22,15 @@ http://localhost:8080
 ```
 https://api.microcommerce.example.com
 ```
+
+## Shared Infrastructure
+
+**Database:**
+- PostgreSQL (shared): Port 5432 - Primary data storage
+- Redis (shared): Port 6379 - Caching and sessions
+
+**Message Queue:**
+- Kafka: Port 9092 - Inter-service communication
 
 ## API Versioning
 

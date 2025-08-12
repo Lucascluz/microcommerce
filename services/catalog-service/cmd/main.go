@@ -10,19 +10,19 @@ import (
 )
 
 func main() {
-	port := utils.GetEnvOrDefault("PORT", "8083")
+	port := utils.GetEnvOrDefault("PORT", "8082")
 
 	// Start Kafka consumer in a goroutine
 	go startKafkaConsumer()
 
-	log.Printf("user service starting on port %s", port)
+	log.Printf("Catalog service starting on port %s", port)
 }
 
 func startKafkaConsumer() {
 	broker := utils.GetEnvOrDefault("KAFKA_BROKER", "localhost:9092")
 	pingTopic := "service-ping"
 	pongTopic := "service-pong"
-	groupID := "user-service-group"
+	groupID := "catalog-service-group"
 
 	log.Printf("Starting Kafka consumer. Broker: %s", broker)
 
@@ -60,7 +60,7 @@ func startKafkaConsumer() {
 	})
 	defer w.Close()
 
-	log.Println("user service Kafka consumer started")
+	log.Println("Catalog service Kafka consumer started")
 
 	// Read messages from Kafka
 	for {
@@ -81,13 +81,13 @@ func startKafkaConsumer() {
 		log.Printf("Received ping: %s", string(m.Value))
 
 		// Check if the ping is specifically for this service
-		if string(m.Key) == "user-service" || string(m.Value) == "ping" {
+		if string(m.Key) == "catalog-service" || string(m.Value) == "ping" {
 			// Respond with service status
-			resp := []byte(`{"status":"healthy", "service":"user-service", "timestamp":"` + time.Now().Format(time.RFC3339) + `"}`)
+			resp := []byte(`{"status":"healthy", "service":"catalog-service", "timestamp":"` + time.Now().Format(time.RFC3339) + `"}`)
 			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 			err = w.WriteMessages(ctx,
 				kafka.Message{
-					Key:   []byte("user-service"),
+					Key:   []byte("catalog-service"),
 					Value: resp,
 					Time:  time.Now(),
 				},

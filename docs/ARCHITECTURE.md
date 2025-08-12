@@ -2,7 +2,7 @@
 
 ## Overview
 
-MicroCommerce follows a distributed microservices architecture pattern designed for scalability, maintainability, and fault tolerance. This document provides detailed insights into the system design, communication patterns, and architectural decisions.
+MicroCommerce follows a distributed microservices architecture pattern designed for scalability, maintainability, and fault tolerance. The system has been restructured into 5 core services for better organization and reduced complexity.
 
 ## System Architecture
 
@@ -24,27 +24,48 @@ MicroCommerce follows a distributed microservices architecture pattern designed 
 │  - Service Discovery                                    │
 └─────────────────────┬───────────────────────────────────┘
                       │
-         ┌────────────┼────────────┐
-         │            │            │
-         ▼            ▼            ▼
+   ┌──────────────────┼──────────────────┐
+   │                  │                  │
+   ▼                  ▼                  ▼
 ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│   Payment   │ │   Product   │ │    User     │
+│   Catalog   │ │Transaction  │ │    User     │
 │   Service   │ │   Service   │ │   Service   │
-│ (Port 8081) │ │ (Port 8082) │ │ (Port 8083) │
+│ (Port 8082) │ │ (Port 8081) │ │ (Port 8083) │
+│             │ │             │ │             │
+│ • Products  │ │ • Orders    │ │ • Auth      │
+│ • Reviews   │ │ • Payments  │ │ • Profiles  │
+│ • Inventory │ │ • Sales     │ │ • Accounts  │
+│             │ │ • Shipping  │ │             │
 └─────────────┘ └─────────────┘ └─────────────┘
-         │            │            │
-         └────────────┼────────────┘
+   │                  │                  │
+   └──────────────────┼──────────────────┘
                       │
-              ┌───────▼───────┐
-              │     Kafka     │
-              │ Message Broker│
-              │ (Port 9092)   │
-              └───────────────┘
+        ┌─────────────▼─────────────┐
+        │     Shared Infrastructure │
+        │                          │
+        │  ┌─────────────────────┐  │
+        │  │     PostgreSQL      │  │
+        │  │   (Port 5432)       │  │
+        │  │  Primary Database   │  │
+        │  └─────────────────────┘  │
+        │                          │
+        │  ┌─────────────────────┐  │
+        │  │       Redis         │  │
+        │  │    (Port 6379)      │  │
+        │  │  Cache & Sessions   │  │
+        │  └─────────────────────┘  │
+        │                          │
+        │  ┌─────────────────────┐  │
+        │  │       Kafka         │  │
+        │  │    (Port 9092)      │  │
+        │  │  Message Broker     │  │
+        │  └─────────────────────┘  │
+        └──────────────────────────┘
 ```
 
-## Core Components
+## Core Services
 
-### 1. API Gateway
+### 1. API Gateway (Port 8080)
 
 **Responsibility**: Single entry point for all client requests
 
@@ -61,25 +82,48 @@ MicroCommerce follows a distributed microservices architecture pattern designed 
 - Provides service discovery capabilities
 - Maintains service registry for routing decisions
 
-### 2. Payment Service
+### 2. Catalog Service (Port 8082)
 
-**Responsibility**: Handle all payment-related operations
+**Responsibility**: Consolidated product and review management
 
 **Key Features**:
-- Payment processing (future implementation)
-- Transaction management
-- Payment method validation
-- Integration with external payment providers (planned)
-- PCI compliance ready architecture
+- Product catalog management (listings, details, pricing)
+- Inventory tracking and management
+- Product reviews and ratings system
+- Product search and filtering capabilities
+- Product categorization and tagging
 
-**Current Implementation**:
-- Basic health check endpoint
-- Kafka consumer for ping/pong health monitoring
-- Ready for payment gateway integration
+**Consolidated from**: product-service + review-service
 
-### 3. Product Service
+**Implementation Details**:
+- Built with Go and Gin framework
+- Connects to shared PostgreSQL for persistent data
+- Uses Redis for caching product data and search results
+- Kafka integration for inter-service communication
 
-**Responsibility**: Manage product catalog and inventory
+### 3. Transaction Service (Port 8081)
+
+**Responsibility**: Complete transaction lifecycle management
+
+**Key Features**:
+- Order creation and management
+- Payment processing and refunds
+- Sales reporting and analytics
+- Shipping information and tracking
+- Order status management and notifications
+
+**Consolidated from**: payment-service + order-service + sales-service + shipping-service
+
+**Implementation Details**:
+- Built with Go and Gin framework
+- Handles complex transaction workflows
+- Integrates with external payment providers (planned)
+- Maintains transaction audit logs in PostgreSQL
+- Uses Redis for session management and caching
+
+### 4. User Service (Port 8083)
+
+**Responsibility**: User management and authentication (unchanged)
 
 **Key Features**:
 - Product CRUD operations (planned)

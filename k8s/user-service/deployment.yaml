@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: user-service
+  labels:
+    app: user-service
 spec:
   replicas: 1
   selector:
@@ -22,10 +24,36 @@ spec:
           value: "8083"
         - name: KAFKA_BROKER
           value: "kafka:9092"
+        - name: POSTGRES_HOST
+          value: "postgres"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: "microcommerce"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
         resources:
           requests:
-            cpu: "100m"
             memory: "128Mi"
+            cpu: "100m"
           limits:
-            cpu: "500m"
             memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
