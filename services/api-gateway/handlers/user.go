@@ -37,6 +37,7 @@ func NewUserHandler() *UserHandler {
 }
 
 func (u *UserHandler) Register(c *gin.Context) {
+	
 	// 1. Validate request structure (Gateway responsibility)
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -157,7 +158,7 @@ func (u *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	response, err := u.waitForResponse(correlationID, 30*time.Second)
+	response, err := u.waitForResponse(correlationID, 120*time.Second)
 	if err != nil {
 		c.JSON(http.StatusRequestTimeout, gin.H{"error": "Request timeout"})
 		return

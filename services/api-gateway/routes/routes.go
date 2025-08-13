@@ -29,7 +29,7 @@ func SetupRoutes(router *gin.Engine) {
 			auth.POST("/register", userHandler.Register)
 			auth.POST("/login", userHandler.Login)
 		}
-
+		
 		// Protected user routes (auth required)
 		users := api.Group("/users")
 		users.Use(authMiddleware.RequireAuth())

@@ -18,5 +18,6 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=builder /app/services/user-service/main .
+COPY --from=builder /app/services/user-service/migrations ./migrations
 EXPOSE 8083
 CMD ["./main"]
