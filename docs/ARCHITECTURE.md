@@ -110,7 +110,7 @@ MicroCommerce follows a distributed microservices architecture pattern designed 
 - Payment processing and refunds
 - Sales reporting and analytics
 - Shipping information and tracking
-- Order status management and notifications
+- Order status management and notification
 
 **Consolidated from**: payment-service + order-service + sales-service + shipping-service
 

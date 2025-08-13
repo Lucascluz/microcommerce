@@ -8,7 +8,7 @@ This document provides comprehensive information about the MicroCommerce API end
 - **user-service** (8083): Authentication, profiles, account management
 - **catalog-service** (8082): Product listings, reviews, inventory
 - **transaction-service** (8081): Orders, payments, sales, shipping
-- **notifications-service** (8087): Email, push notifications
+- **notification-service** (8087): Email, push notification
 - **visualization-service** (8089): Analytics, reports, observability
 
 ## Base URL
@@ -502,7 +502,7 @@ Content-Length: 145
 
 ## Webhooks (Planned)
 
-Future webhook implementation for real-time notifications:
+Future webhook implementation for real-time notification:
 
 ### Payment Webhooks
 

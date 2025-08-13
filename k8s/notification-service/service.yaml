@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: notifications-service
+  name: notification-service
 spec:
   selector:
-    app: notifications-service
+    app: notification-service
   ports:
   - port: 8087
     targetPort: 8087

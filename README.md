@@ -14,7 +14,7 @@ The system has been restructured into **5 core services** for better organizatio
 | **user-service** | 8083 | Authentication, profiles, account management | *(unchanged)* |
 | **catalog-service** | 8082 | Product listings, reviews, inventory | product-service + review-service |
 | **transaction-service** | 8081 | Orders, payments, sales, shipping | payment-service + order-service + sales-service + shipping-service |
-| **notifications-service** | 8087 | Email, push notifications | *(unchanged)* |
+| **notification-service** | 8087 | Email, push notification | *(unchanged)* |
 | **visualization-service** | 8089 | Analytics, observability, reports | *(unchanged)* |
 
 ### Shared Infrastructure

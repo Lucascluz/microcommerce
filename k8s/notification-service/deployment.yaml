@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: notifications-service
+  name: notification-service
   labels:
-    app: notifications-service
+    app: notification-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: notifications-service
+      app: notification-service
   template:
     metadata:
       labels:
-        app: notifications-service
+        app: notification-service
     spec:
       containers:
-      - name: notifications-service
-        image: notifications-service
+      - name: notification-service
+        image: notification-service
         ports:
         - containerPort: 8087
         env:
@@ -47,13 +47,17 @@ spec:
             cpu: "200m"
         readinessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8087
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8087
-          initialDelaySeconds: 30
-          periodSeconds: 10
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3

@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lucas/shared/utils"
 	"github.com/segmentio/kafka-go"
 )
@@ -15,11 +17,37 @@ func main() {
 	// Start Kafka consumer in a goroutine
 	go startKafkaConsumer()
 
+	// Create HTTP server for health checks
+	r := gin.Default()
+
+	// Health check endpoint
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"service":   "transaction-service",
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+	})
+
+	// Health check endpoint (alternative path)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"service":   "transaction-service",
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+	})
+
 	log.Printf("Transaction service starting on port %s", port)
+
+	// Start HTTP server (this will block and keep the service running)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 }
 
 func startKafkaConsumer() {
-	broker := utils.GetEnvOrDefault("KAFKA_BROKER", "localhost:9092")
+	broker := utils.GetEnvOrDefault("KAFKA_BROKER", "kafka:9092")
 	pingTopic := "service-ping"
 	pongTopic := "service-pong"
 	groupID := "transaction-service-group"
@@ -27,6 +55,7 @@ func startKafkaConsumer() {
 	log.Printf("Starting Kafka consumer. Broker: %s", broker)
 
 	// Wait for Kafka to be available with retry logic
+	var connected bool
 	for retries := 0; retries < 30; retries++ {
 		log.Printf("Attempting to connect to Kafka at %s (attempt %d/30)", broker, retries+1)
 
@@ -35,6 +64,7 @@ func startKafkaConsumer() {
 		if err == nil {
 			conn.Close()
 			log.Println("Successfully connected to Kafka")
+			connected = true
 			break
 		}
 
@@ -42,21 +72,28 @@ func startKafkaConsumer() {
 		time.Sleep(5 * time.Second)
 	}
 
+	if !connected {
+		log.Printf("Failed to connect to Kafka after 30 attempts. Running without Kafka consumer.")
+		return
+	}
+
 	// Create a new Kafka reader
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     []string{broker},
 		Topic:       pingTopic,
 		GroupID:     groupID,
-		StartOffset: kafka.LastOffset,
+		StartOffset: kafka.FirstOffset,
 		MinBytes:    1,
 		MaxBytes:    10e6,
+		MaxWait:     time.Second * 5, // Don't wait too long for messages
 	})
 	defer r.Close()
 
 	// Create new Kafka writer
 	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{broker},
-		Topic:   pongTopic,
+		Brokers:  []string{broker},
+		Topic:    pongTopic,
+		Balancer: &kafka.LeastBytes{}, // Better load balancing
 	})
 	defer w.Close()
 
@@ -64,17 +101,17 @@ func startKafkaConsumer() {
 
 	// Read messages from Kafka
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		m, err := r.ReadMessage(ctx)
 		cancel()
 
 		if err != nil {
 			if err == context.DeadlineExceeded {
-				log.Printf("No messages received in 30 seconds, continuing...")
+				// This is normal - no messages received, continue quietly
 				continue
 			}
 			log.Printf("Error reading Kafka message: %v", err)
-			time.Sleep(1 * time.Second)
+			time.Sleep(5 * time.Second) // Wait longer on error
 			continue
 		}
 
