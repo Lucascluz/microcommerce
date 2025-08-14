@@ -64,7 +64,7 @@ func (h *GatewayHandler) PingServices(c *gin.Context) {
 			Key:   []byte(svc),
 			Value: []byte("ping"),
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		if err := h.kafkaWriter.WriteMessages(ctx, msg); err != nil {
 			log.Printf("Error sending ping to %s: %v", svc, err)
 			cancel()
@@ -89,7 +89,7 @@ func (h *GatewayHandler) PingServices(c *gin.Context) {
 
 	// Collect responses
 	log.Printf("Starting to collect responses...")
-	responses := make([]map[string]interface{}, 0)
+	responses := make([]map[string]any, 0)
 	receivedServices := make(map[string]bool)
 	timeout := time.After(6 * time.Second) // Reasonable timeout
 
@@ -114,7 +114,7 @@ responseLoop:
 			}
 
 			log.Printf("Received response from %s: %s", string(m.Key), string(m.Value))
-			var resp map[string]interface{}
+			var resp map[string]any
 			if err := json.Unmarshal(m.Value, &resp); err == nil {
 				// Check if we already received response from this service
 				if serviceName, ok := resp["service"].(string); ok {

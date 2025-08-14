@@ -25,11 +25,15 @@ func NewKafkaHandler(userService *services.UserService, writer *kafka.Writer) *K
 }
 
 func (h *KafkaHandler) HandleUserMessage(message kafka.Message) {
+	log.Printf("Received Kafka message - Key: %s, Value: %s", string(message.Key), string(message.Value))
+
 	var userMsg models.UserServiceMessage
 	if err := json.Unmarshal(message.Value, &userMsg); err != nil {
 		log.Printf("Failed to unmarshal message: %v", err)
 		return
 	}
+
+	log.Printf("Parsed message - CorrelationID: %s, Action: %s", userMsg.CorrelationID, userMsg.Action)
 
 	switch userMsg.Action {
 	case "register":
@@ -44,7 +48,9 @@ func (h *KafkaHandler) HandleUserMessage(message kafka.Message) {
 }
 
 func (h *KafkaHandler) handleRegister(userMsg models.UserServiceMessage) {
-	
+
+	log.Printf("Received regsiter message: %s", userMsg)
+
 	// Parse register request
 	reqBytes, _ := json.Marshal(userMsg.Data)
 	var registerReq models.RegisterRequest
@@ -54,11 +60,13 @@ func (h *KafkaHandler) handleRegister(userMsg models.UserServiceMessage) {
 	}
 
 	// Convert to internal model
-	createUserReq := &usermodels.CreateUserRequest{
+	createUserReq := &usermodels.RegisterUserRequest{
 		Email:    registerReq.Email,
 		Name:     registerReq.Name,
 		Password: registerReq.Password,
 	}
+
+	log.Printf("Trying to regsiter user: %s", createUserReq)
 
 	// Register user
 	user, err := h.userService.RegisterUser(createUserReq)
@@ -76,10 +84,49 @@ func (h *KafkaHandler) handleRegister(userMsg models.UserServiceMessage) {
 		"user":    user,
 		"message": "User registered successfully",
 	})
+
+	log.Printf("User registered successfully: %+v", user)
 }
 
-func (h *KafkaHandler) handleLogin(message models.UserServiceMessage) {
-	log.Printf("Method not implemented")
+func (h *KafkaHandler) handleLogin(userMsg models.UserServiceMessage) {
+
+	log.Printf("Received login message: %s", userMsg)
+
+	// Parse register request
+	reqBytes, _ := json.Marshal(userMsg.Data)
+	var registerReq models.LoginRequest
+	if err := json.Unmarshal(reqBytes, &registerReq); err != nil {
+		h.sendErrorResponse(userMsg.CorrelationID, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+
+	// Convert to internal model
+	loginUserReq := &usermodels.LoginUserRequest{
+		Email:    registerReq.Email,
+		Password: registerReq.Password,
+	}
+
+	log.Printf("Trying to login user: %s", loginUserReq)
+
+	// Login user
+	session, token, err := h.userService.LoginUser(loginUserReq)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "user not found" || err.Error() == "invalid credentials" || err.Error() == "invalid email format" {
+			statusCode = http.StatusBadRequest
+		}
+		h.sendErrorResponse(userMsg.CorrelationID, statusCode, err.Error())
+		return
+	}
+
+	// Send success response
+	h.sendSuccessResponse(userMsg.CorrelationID, http.StatusCreated, map[string]any{
+		"session": session,
+		"token":   token,
+		"message": "User logged in successfully",
+	})
+
+	log.Printf("User logged and session created successfully: %+v", session)
 }
 
 func (h *KafkaHandler) handleLogout(message models.UserServiceMessage) {
@@ -92,6 +139,7 @@ func (h *KafkaHandler) handleGetProfile(message models.UserServiceMessage) {
 }
 
 func (h *KafkaHandler) sendSuccessResponse(correlationID string, statusCode int, data any) {
+	log.Printf("Sending success response")
 	response := models.UserServiceResponse{
 		CorrelationID: correlationID,
 		StatusCode:    statusCode,
@@ -101,6 +149,7 @@ func (h *KafkaHandler) sendSuccessResponse(correlationID string, statusCode int,
 }
 
 func (h *KafkaHandler) sendErrorResponse(correlationID string, statusCode int, errorMsg string) {
+	log.Printf("Sending error response")
 	response := models.UserServiceResponse{
 		CorrelationID: correlationID,
 		StatusCode:    statusCode,
@@ -113,6 +162,9 @@ func (h *KafkaHandler) sendErrorResponse(correlationID string, statusCode int, e
 func (h *KafkaHandler) sendResponse(response models.UserServiceResponse) {
 	responseBytes, _ := json.Marshal(response)
 
+	log.Printf("Sending response to user-responses topic - CorrelationID: %s, StatusCode: %d", response.CorrelationID, response.StatusCode)
+	log.Printf("Response payload: %s", string(responseBytes))
+
 	err := h.writer.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(response.CorrelationID),
@@ -122,5 +174,7 @@ func (h *KafkaHandler) sendResponse(response models.UserServiceResponse) {
 
 	if err != nil {
 		log.Printf("Failed to send response: %v", err)
+	} else {
+		log.Printf("Successfully sent response to Kafka for correlationID: %s", response.CorrelationID)
 	}
 }

@@ -18,7 +18,8 @@ func NewUserService(userRepo *repository.UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) RegisterUser(req *models.CreateUserRequest) (*models.User, error) {
+func (s *UserService) RegisterUser(req *models.RegisterUserRequest) (*models.User, error) {
+
 	// Validate email
 	if !s.isValidEmail(req.Email) {
 		return nil, errors.New("invalid email format")
@@ -52,6 +53,43 @@ func (s *UserService) RegisterUser(req *models.CreateUserRequest) (*models.User,
 
 	// Return the created user
 	return user, nil
+}
+
+func (s *UserService) LoginUser(req *models.LoginUserRequest) (*models.Session, string, error) {
+
+	// Validate email
+	if !s.isValidEmail(req.Email) {
+		return nil, "", errors.New("invalid email format")
+	}
+
+	// Validade password
+	if !s.isValidPassword(req.Password) {
+		return nil, "", errors.New("invalid password format")
+	}
+
+	// Verify email and get user
+	user, err := s.userRepo.GetUserByEmail(req.Email)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return nil, "", errors.New("invalid credentials")
+		}
+		return nil, "", errors.New("database error")
+	}
+
+	// Verify password
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
+	if err != nil {
+		return nil, "", errors.New("invalid credentials")
+	}
+
+	// Create new session in redis
+	session, token, err := s.userRepo.CreateSession(user)
+	if err != nil {
+		return nil, "", errors.New("error creating session")
+	}
+
+	// Return the created session and token
+	return session, token, nil
 }
 
 func (s *UserService) isValidEmail(email string) bool {

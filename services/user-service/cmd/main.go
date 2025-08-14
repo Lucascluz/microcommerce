@@ -21,12 +21,19 @@ func main() {
 	if err := initDatabase(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+	log.Printf("Database initialized successfully")
 
-	// 2. Set up dependencies
+	// 2. Initialize Redis
+	if err := initRedis(); err != nil {
+		log.Fatalf("Failed to initialize Redis: %v", err)
+	}
+	log.Printf("Redis initialized successfully")
+
+	// 3. Set up dependencies
 	userRepo := repository.NewUserRepository(database.GetDB())
 	userService := services.NewUserService(userRepo)
 
-	// 3. Set up Kafka
+	// 4. Set up Kafka
 	kafkaWriter := &kafka.Writer{
 		Addr:     kafka.TCP(utils.GetEnvOrDefault("KAFKA_BROKER", "kafka:9092")),
 		Topic:    "user-responses",
@@ -42,13 +49,15 @@ func main() {
 	}
 	defer healthWriter.Close()
 
+	log.Printf("Kakfa writers running!")
+
 	kafkaHandler := handlers.NewKafkaHandler(userService, kafkaWriter)
 
-	// 4. Start Kafka consumers
+	// 5. Start Kafka consumers
 	go startUserRequestsConsumer(kafkaHandler)
 	go startHealthCheckConsumer(healthWriter)
 
-	// 5. Start HTTP server for health checks
+	// 6. Start HTTP server for health checks
 	startHTTPServer()
 }
 
@@ -66,6 +75,11 @@ func initDatabase() error {
 	return nil
 }
 
+func initRedis() error {
+	config := database.GetRedisConfig()
+	return database.ConnectRedis(config)
+}
+
 func startUserRequestsConsumer(handler *handlers.KafkaHandler) {
 	broker := utils.GetEnvOrDefault("KAFKA_BROKER", "kafka:9092")
 
@@ -73,7 +87,7 @@ func startUserRequestsConsumer(handler *handlers.KafkaHandler) {
 		Brokers:     []string{broker},
 		Topic:       "user-requests",
 		GroupID:     "user-service-group",
-		StartOffset: kafka.LastOffset,
+		StartOffset: kafka.FirstOffset, // Changed to FirstOffset for consistency
 	})
 	defer reader.Close()
 
@@ -86,6 +100,7 @@ func startUserRequestsConsumer(handler *handlers.KafkaHandler) {
 			continue
 		}
 
+		log.Printf("Processing message with key: %s", string(message.Key))
 		handler.HandleUserMessage(message)
 	}
 }
